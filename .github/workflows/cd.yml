@@ -34,6 +34,7 @@ jobs:
 
       - name: Build extension
         run: |
+          mkdir -p dist
           blender/Blender.app/Contents/MacOS/Blender --command extension build --output-dir dist
 
       - name: Upload build artifacts
