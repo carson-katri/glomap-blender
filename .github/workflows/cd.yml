@@ -15,6 +15,41 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      
+      - name: Setup GLOMAP build
+        run: |
+          brew install \
+            cmake \
+            ninja \
+            boost \
+            eigen \
+            flann \
+            freeimage \
+            metis \
+            glog \
+            googletest \
+            ceres-solver \
+            qt@5 \
+            glew \
+            cgal \
+            sqlite3 \
+            ccache
+        
+      - name: Clone and build GLOMAP
+        run: |
+          cd ..
+          git clone --branch 4f475de4813f572926980bd2a433b44f05a95bcf https://github.com/colmap/glomap/ glomap
+          cd glomap
+          cmake --version
+          mkdir build
+          cd build
+          cmake .. \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTESTS_ENABLED=ON \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+          ninja
+          cp glomap/glomap ../../glomap-blender/glomap_subprocess
 
       - name: Download Blender
         run: |
