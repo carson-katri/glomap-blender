@@ -34,7 +34,6 @@ jobs:
 
       - name: Build extension
         run: |
-          chmod +x $BLENDER_EXEC
           blender/Blender.app/Contents/MacOS/Blender --command extension build --output-dir dist
 
       - name: Upload build artifacts
