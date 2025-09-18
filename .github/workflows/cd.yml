@@ -30,12 +30,14 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt
+          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
           mkdir -p dist
-          blender/Blender.app/Contents/MacOS/Blender --command extension build --output-dir dist
+          blender/Blender.app/Contents/MacOS/Blender --command extension build --split-platforms --output-dir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
