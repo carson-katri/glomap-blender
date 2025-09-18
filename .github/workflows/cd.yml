@@ -34,7 +34,8 @@ jobs:
             cgal \
             sqlite3 \
             ccache
-          brew link --force boost@1.85
+          brew unlink boost
+          brew link --force --overwrite boost@1.85
         
       - name: Clone and build GLOMAP
         run: |
