@@ -21,7 +21,7 @@ jobs:
           brew install \
             cmake \
             ninja \
-            boost \
+            boost@1.85 \
             eigen \
             flann \
             freeimage \
