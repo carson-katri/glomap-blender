@@ -1,0 +1,44 @@
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      BLENDER_URL: "https://www.blender.org/download/release/Blender4.5/blender-4.5.3-macos-arm64.dmg/"
+      WHEELS_DIR: wheels
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Blender
+        run: |
+          curl -L "$BLENDER_URL" -o blender.dmg
+          hdiutil attach blender.dmg -nobrowse -quiet
+          VOL=$(ls /Volumes | grep -i Blender | head -n1)
+          echo "Mounted at /Volumes/$VOL"
+
+          mkdir blender
+          cp -R "/Volumes/$VOL/Blender.app" blender/
+          hdiutil detach "/Volumes/$VOL" -quiet
+
+      - name: Download Python wheels
+        run: |
+          mkdir -p ${WHEELS_DIR}
+          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt
+
+      - name: Build extension
+        run: |
+          chmod +x $BLENDER_EXEC
+          blender/Blender.app/Contents/MacOS/Blender --command extension build --output-dir dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-extension
+          path: dist/
