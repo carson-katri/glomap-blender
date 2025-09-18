@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: macos-latest
     env:
-      BLENDER_URL: "https://www.blender.org/download/release/Blender4.5/blender-4.5.3-macos-arm64.dmg/"
+      BLENDER_URL: "https://cdn.builder.blender.org/download/daily/archive/blender-4.5.3-candidate+v45.ad3eb9baf0a6-darwin.arm64-release.dmg"
       WHEELS_DIR: wheels
 
     steps:
