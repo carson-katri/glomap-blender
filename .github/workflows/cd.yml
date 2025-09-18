@@ -38,8 +38,9 @@ jobs:
       - name: Clone and build GLOMAP
         run: |
           cd ..
-          git clone --branch 4f475de4813f572926980bd2a433b44f05a95bcf https://github.com/colmap/glomap/ glomap
+          git clone https://github.com/colmap/glomap/ glomap
           cd glomap
+          git checkout 4f475de4813f572926980bd2a433b44f05a95bcf
           cmake --version
           mkdir build
           cd build
