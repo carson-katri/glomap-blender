@@ -82,4 +82,5 @@ paths_exclude_pattern = [
   "/.venv/",
   "/.git/",
   "/*.zip",
+  "/dist/"
 ]

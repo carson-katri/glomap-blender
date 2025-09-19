@@ -15,8 +15,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      # - uses: mlugg/setup-zig@v2
-      
       - name: Setup GLOMAP build
         run: |
           sudo apt-get update && sudo apt-get install -y \
@@ -80,6 +78,7 @@ jobs:
 
       - name: Download Blender
         run: |
+          cd ..
           curl -L "$BLENDER_URL" -o blender.tar.xz
           tar -xf blender.tar.xz
           # Find the extracted Blender folder (e.g., blender-4.5.0-linux-x64)
@@ -90,14 +89,14 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
-          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
-          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
           mkdir -p dist
-          blender/blender --command extension build --split-platforms --output-dir dist
+          ../blender/blender --command extension build --split-platforms --output-dir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -131,7 +130,8 @@ jobs:
             glew \
             cgal \
             sqlite3 \
-            ccache
+            ccache \
+            dylibbundler
           brew unlink boost
           brew link --force --overwrite boost@1.85
         
@@ -147,14 +147,18 @@ jobs:
           cmake .. \
             -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DTESTS_ENABLED=ON \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" \
             -DBUILD_SHARED_LIBS=OFF
           ninja
           cp glomap/glomap ../../glomap-blender/glomap_subprocess
 
+          # make it portable
+          cd ../../glomap-blender/glomap_subprocess
+          dylibbundler -x glomap -b -d libs -p @executable_path/libs --create-dir
+
       - name: Download Blender
         run: |
+          cd ..
           curl -L "$BLENDER_URL" -o blender.dmg
           hdiutil attach blender.dmg -nobrowse -quiet
           VOL=$(ls /Volumes | grep -i Blender | head -n1)
@@ -167,14 +171,14 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
-          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
-          blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
           mkdir -p dist
-          blender/Blender.app/Contents/MacOS/Blender --command extension build --split-platforms --output-dir dist
+          ../blender/Blender.app/Contents/MacOS/Blender --command extension build --split-platforms --output-dir dist
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
