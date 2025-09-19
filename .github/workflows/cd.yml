@@ -73,7 +73,7 @@ jobs:
             -DCUDA_ENABLED=false \
             -DTESTS_ENABLED=ON \
             -DASAN_ENABLED=false \
-            -DCMAKE_EXE_LINKER_FLAGS="-static" \
+            -DCMAKE_EXE_LINKER_FLAGS="" \
             -DBUILD_SHARED_LIBS=OFF
           ninja -k 10000
 
