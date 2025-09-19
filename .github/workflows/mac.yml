@@ -76,6 +76,7 @@ jobs:
           EOL
 
           cmake -DBUNDLE_PATH="$(pwd)/glomap.app" -DEXTRA_SEARCH_DIRS="$(brew --prefix gcc)/lib/gcc/current" -P fixup.cmake
+          codesign --force --deep --sign - glomap.app
 
       - name: Download Blender
         run: |

@@ -187,7 +187,7 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.space_data.mode == 'TRACKING'
+        return context.space_data.mode == 'TRACKING' and context.space_data.clip is not None
 
     def draw(self, context):
         layout = self.layout
@@ -197,6 +197,27 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
 
         sc = context.space_data
         clip = sc.clip
+
+        layout.prop(clip.colmap.incremental_pipeline, "min_num_matches")
+        layout.prop(clip.colmap.incremental_pipeline, "ignore_watermarks")
+        layout.prop(clip.colmap.incremental_pipeline, "multiple_models")
+        layout.prop(clip.colmap.incremental_pipeline, "max_num_models")
+        layout.prop(clip.colmap.incremental_pipeline, "max_model_overlap")
+        layout.prop(clip.colmap.incremental_pipeline, "min_model_size")
+        layout.prop(clip.colmap.incremental_pipeline, "init_image_id1")
+        layout.prop(clip.colmap.incremental_pipeline, "init_image_id2")
+        layout.prop(clip.colmap.incremental_pipeline, "init_num_trials")
+        layout.prop(clip.colmap.incremental_pipeline, "extract_colors")
+        layout.prop(clip.colmap.incremental_pipeline, "min_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline, "max_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline, "max_extra_param")
+        
+        layout.prop(clip.colmap.incremental_pipeline, "use_prior_position")
+        layout.prop(clip.colmap.incremental_pipeline, "use_robust_loss_on_prior_position")
+        layout.prop(clip.colmap.incremental_pipeline, "prior_position_loss_scale")
+        layout.prop(clip.colmap.incremental_pipeline, "snapshot_path")
+        layout.prop(clip.colmap.incremental_pipeline, "snapshot_frames_freq")
+        layout.prop(clip.colmap.incremental_pipeline, "fix_existing_frames")
         
         col = layout.column(align=True)
         col.scale_y = 2.0
@@ -205,6 +226,108 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
         layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
         
         layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
+
+class BaseColmapSolverPanel(bpy.types.Panel):
+    bl_space_type = 'CLIP_EDITOR'
+    bl_region_type = 'TOOLS'
+    bl_category = "Track"
+    bl_parent_id = CLIP_PT_ColmapSolverPanel.bl_idname
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.mode == 'TRACKING'
+
+class CLIP_PT_IncrementalBundleAdjustmentPanel(BaseColmapSolverPanel):
+    bl_label = "Bundle Adjustment"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        sc = context.space_data
+        clip = sc.clip
+
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "refine_focal_length")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "refine_principal_point")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "refine_extra_params")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "refine_sensor_from_rig")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "min_num_residuals_for_cpu_multi_threading")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "local_num_images")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "local_function_tolerance")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "local_max_num_iterations")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_frames_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_points_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_frames_freq")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_points_freq")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_function_tolerance")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_max_num_iterations")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "local_max_refinements")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "local_max_refinement_change")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_max_refinements")
+        layout.prop(clip.colmap.incremental_pipeline.bundle_adjustment, "global_max_refinement_change")
+
+class CLIP_PT_IncrementalMapperPanel(BaseColmapSolverPanel):
+    bl_label = "Mapper"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        sc = context.space_data
+        clip = sc.clip
+
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "init_min_num_inliers")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "init_max_error")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "init_max_forward_motion")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "init_min_tri_angle")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "init_max_reg_trials")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "abs_pose_max_error")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "abs_pose_min_num_inliers")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "abs_pose_min_inlier_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "abs_pose_refine_focal_length")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "abs_pose_refine_extra_params")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "local_ba_num_images")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "local_ba_min_tri_angle")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "min_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "max_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "max_extra_param")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "filter_max_reproj_error")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "filter_min_tri_angle")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "max_reg_trials")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "fix_existing_frames")
+        layout.prop(clip.colmap.incremental_pipeline.mapper, "image_selection_method")
+
+class CLIP_PT_IncrementalTriangulatorPanel(BaseColmapSolverPanel):
+    bl_label = "Triangulator"
+
+    def draw(self, context):
+        layout = self.layout
+
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+
+        sc = context.space_data
+        clip = sc.clip
+
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "max_transitivity")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "create_max_angle_error")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "continue_max_angle_error")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "merge_max_reproj_error")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "complete_max_reproj_error")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "complete_max_transitivity")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "re_max_angle_error")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "re_min_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "re_max_trials")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "min_angle")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "ignore_two_view_tracks")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "min_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "max_focal_length_ratio")
+        layout.prop(clip.colmap.incremental_pipeline.triangulation, "max_extra_param")
 
 class BaseColmapFeatureMatchingPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
@@ -299,6 +422,9 @@ def register():
     bpy.utils.register_class(COLMAP_MT_ClearCacheMenu)
     bpy.utils.register_class(CLIP_PT_ColmapFootagePanel)
     bpy.utils.register_class(CLIP_PT_ColmapSolverPanel)
+    bpy.utils.register_class(CLIP_PT_IncrementalBundleAdjustmentPanel)
+    bpy.utils.register_class(CLIP_PT_IncrementalMapperPanel)
+    bpy.utils.register_class(CLIP_PT_IncrementalTriangulatorPanel)
 
 def unregister():
     bpy.utils.unregister_class(CLIP_PT_ColmapFeatureExtractionPanel)
@@ -312,3 +438,6 @@ def unregister():
     bpy.utils.unregister_class(COLMAP_MT_ClearCacheMenu)
     bpy.utils.unregister_class(CLIP_PT_ColmapFootagePanel)
     bpy.utils.unregister_class(CLIP_PT_ColmapSolverPanel)
+    bpy.utils.unregister_class(CLIP_PT_IncrementalBundleAdjustmentPanel)
+    bpy.utils.unregister_class(CLIP_PT_IncrementalMapperPanel)
+    bpy.utils.unregister_class(CLIP_PT_IncrementalTriangulatorPanel)

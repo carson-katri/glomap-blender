@@ -12,73 +12,6 @@ import pycolmap
 
 from ..utils import prepare_database, refresh_cache, clear_feature_extraction, clear_feature_matches, clear_reconstruction, clear_images, clear_all, BlockingOperator
 
-class ReportWriter:
-    def __init__(self, report):
-        self.report = report
-        self.buffer = ""
-    
-    def write(self, text):
-        self.buffer += text
-        while '\n' in self.buffer:
-            line, self.buffer = self.buffer.split('\n', 1)
-            line = line.strip()
-            if line:  # avoid empty lines
-                self.report({'INFO'}, line)
-    
-    def flush(self):
-        if self.buffer.strip():
-            self.operator.report({'INFO'}, self.buffer.strip())
-            self.buffer = ""
-
-_is_running = False
-_last_pos = 0
-_partial_line = ""
-_log_queue = queue.Queue()
-def watch_log():
-    global _last_pos, _partial_line
-
-    log_path = glob.glob(str(Path(bpy.app.tempdir) / "colmap_log_*"))[0]
-    
-    with open(log_path, "r", errors="ignore") as f:
-        f.seek(_last_pos)
-        new_data = f.read()
-        _last_pos = f.tell()  # move cursor immediately
-    
-    if not new_data:
-        if not _is_running:
-            return None
-        else:
-            return 0.5
-
-    new_data = _partial_line + new_data
-
-    lines = new_data.split("\n")
-
-    if new_data[-1] != "\n":
-        _partial_line = lines.pop()
-    else:
-        _partial_line = ""
-
-    for line in lines:
-        if line.strip():
-            _log_queue.put(line)
-
-    
-    if not _is_running:
-        return None
-    else:
-        return 0.1
-
-# _progress_current = 0
-# _progress_total = 0
-# _progress_regex = re.compile(r"Processed file \[(\d+)\/(\d+)\]")
-# def draw_progress(self, context):
-#     if context.space_data.type != 'CLIP_EDITOR':
-#         return
-#     if _is_running and _progress_total > 0:
-#         self.layout.label(text="Extracting Features")
-#         self.layout.progress(text=f"{_progress_current} / {_progress_total}", factor=_progress_current / _progress_total)
-
 class ColmapExtractFeaturesOperator(BlockingOperator):
     bl_idname = "colmap.extract_features"
     bl_label = "Extract Features"
@@ -149,6 +82,7 @@ class ColmapSolveOperator(BlockingOperator):
             'database_path': database_path,
             'image_path': image_path,
             'output_path': reconstruction_path,
+            'options': clip.colmap.incremental_pipeline.build()
         },)
 
     def execute_async(self, args):
@@ -178,15 +112,19 @@ class ColmapSetupTrackingSceneOperator(bpy.types.Operator):
 
         reconstruction = pycolmap.Reconstruction(reconstruction_path / "0")
 
+        root_empty = bpy.data.objects.new("Track Root", None)
+        bpy.context.collection.objects.link(root_empty)
+
         # create point cloud
         positions = []
         colors = []
         for point in reconstruction.points3D.values():
             positions.append(point.xyz.tolist())
-            colors.append((point.color / 255.0).tolist())
+            colors.append((point.color / 255.0).tolist()) # NOTE: GLOMAP doesn't produce colors yet, COLMAP's mapper does
         mesh = bpy.data.meshes.new("Track Point Cloud")
         obj = bpy.data.objects.new("Track Point Cloud", mesh)
         bpy.context.collection.objects.link(obj)
+        obj.parent = root_empty
         mesh.from_pydata(positions, [], [])  # only verts, no edges/faces
         mesh.update()
         color_layer = mesh.color_attributes.new(name="Color", domain='POINT', type='BYTE_COLOR')
@@ -203,6 +141,9 @@ class ColmapSetupTrackingSceneOperator(bpy.types.Operator):
         camera_obj = bpy.data.objects.new("Track Camera", camera)
         camera_obj.rotation_mode = 'QUATERNION'
         bpy.context.collection.objects.link(camera_obj)
+        camera_obj.parent = root_empty
+
+        context.scene.camera = camera_obj
 
         for _, image in reconstruction.images.items():
             # images are always named as {frame}.tiff

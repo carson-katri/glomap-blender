@@ -162,7 +162,7 @@ class VocabTreeMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     num_images_after_verification: bpy.props.IntProperty(name="Images After Verification", default=0, description='How many images to return after spatial verification. Set to 0 to turn off spatial verification')
     max_num_features: bpy.props.IntProperty(name="Max Features", default=-1, description='The maximum number of features to use for indexing an image')
     vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin;vocab_tree_faiss_flickr100K_words256K.bin;96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc", description='Path to the vocabulary tree')
-    match_list_path: bpy.props.StringProperty(name="Match List Path", default="", description='Optional path to file with specific image names to match')
+    match_list_path: bpy.props.StringProperty(name="Match List Path", default="", description='Optional path to file with specific image names to match', subtype="DIR_PATH")
 
     def build(self):
         return pycolmap.VocabTreeMatchingOptions(
@@ -253,6 +253,246 @@ class MatchFeaturesPropertyGroup(bpy.types.PropertyGroup):
             'verification_options': self.verification_options.build()
         }
 
+class IncrementalBundleAdjustmentPropertyGroup(bpy.types.PropertyGroup):
+    refine_focal_length: bpy.props.BoolProperty(name="Refine Focal Length", description="Whether to refine the focal length during the reconstruction.", default=True)
+    refine_principal_point: bpy.props.BoolProperty(name="Refine Principal Point", description="Whether to refine the principal point during the reconstruction.", default=False)
+    refine_extra_params: bpy.props.BoolProperty(name="Refine Extra Params", description="Whether to refine extra parameters during the reconstruction.", default=True)
+    refine_sensor_from_rig: bpy.props.BoolProperty(name="Refine Sensor From Rig", description="Whether to refine rig poses during the reconstruction.", default=True)
+    min_num_residuals_for_cpu_multi_threading: bpy.props.IntProperty(name="Min Residuals For CPU Multi Threading", description="The minimum number of residuals per bundle adjustment problem to enable multi-threading solving of the problems.", default=50000)
+    local_num_images: bpy.props.IntProperty(name="Local Images", description="The number of images to optimize in local bundle adjustment.", default=6)
+    local_function_tolerance: bpy.props.FloatProperty(name="Local Function Tolerance", description="Ceres solver function tolerance for local bundle adjustment.", default=0.0)
+    local_max_num_iterations: bpy.props.IntProperty(name="Local Max Iterations", description="The maximum number of local bundle adjustment iterations.", default=25)
+    global_frames_ratio: bpy.props.FloatProperty(name="Global Frames Ratio", description="The growth rates after which to perform global bundle adjustment.", default=1.1)
+    global_points_ratio: bpy.props.FloatProperty(name="Global Points Ratio", description="The growth rates after which to perform global bundle adjustment.", default=1.1)
+    global_frames_freq: bpy.props.IntProperty(name="Global Frames Freq", description="The growth rates after which to perform global bundle adjustment.", default=500)
+    global_points_freq: bpy.props.IntProperty(name="Global Points Freq", description="The growth rates after which to perform global bundle adjustment.", default=250000)
+    global_function_tolerance: bpy.props.FloatProperty(name="Global Function Tolerance", description="Ceres solver function tolerance for global bundle adjustment.", default=0.0)
+    global_max_num_iterations: bpy.props.IntProperty(name="Global Max Iterations", description="The maximum number of global bundle adjustment iterations.", default=50)
+    local_max_refinements: bpy.props.IntProperty(name="Local Max Refinements", description="The thresholds for iterative bundle adjustment refinements.", default=2)
+    local_max_refinement_change: bpy.props.FloatProperty(name="Local Max Refinement Change", description="The thresholds for iterative bundle adjustment refinements.", default=0.001)
+    global_max_refinements: bpy.props.IntProperty(name="Global Max Refinements", description="The thresholds for iterative bundle adjustment refinements.", default=5)
+    global_max_refinement_change: bpy.props.FloatProperty(name="Global Max Refinement Change", description="The thresholds for iterative bundle adjustment refinements.", default=0.0005)
+    use_gpu: bpy.props.BoolProperty(name="Use Gpu", description="Whether to use Ceres’ CUDA sparse linear algebra library, if available.", default=False)
+
+class IncrementalMapperOptionsPropertyGroup(bpy.types.PropertyGroup):
+    init_min_num_inliers: bpy.props.IntProperty(name="Init Min Inliers", description="Minimum number of inliers for initial image pair.", default=100)
+    init_max_error: bpy.props.FloatProperty(name="Init Max Error", description="Maximum error in pixels for two-view geometry estimation for initial image pair.", default=4.0)
+    init_max_forward_motion: bpy.props.FloatProperty(name="Init Max Forward Motion", description="Maximum forward motion for initial image pair.", default=0.95)
+    init_min_tri_angle: bpy.props.FloatProperty(name="Init Min Tri Angle", description="Minimum triangulation angle for initial image pair.", default=16.0)
+    init_max_reg_trials: bpy.props.IntProperty(name="Init Max Reg Trials", description="Maximum number of trials to use an image for initialization.", default=2)
+    abs_pose_max_error: bpy.props.FloatProperty(name="Abs Pose Max Error", description="Maximum reprojection error in absolute pose estimation.", default=12.0)
+    abs_pose_min_num_inliers: bpy.props.IntProperty(name="Abs Pose Min Inliers", description="Minimum number of inliers in absolute pose estimation.", default=30)
+    abs_pose_min_inlier_ratio: bpy.props.FloatProperty(name="Abs Pose Min Inlier Ratio", description="Minimum inlier ratio in absolute pose estimation.", default=0.25)
+    abs_pose_refine_focal_length: bpy.props.BoolProperty(name="Abs Pose Refine Focal Length", description="Whether to estimate the focal length in absolute pose estimation.", default=True)
+    abs_pose_refine_extra_params: bpy.props.BoolProperty(name="Abs Pose Refine Extra Params", description="Whether to estimate the extra parameters in absolute pose estimation.", default=True)
+    local_ba_num_images: bpy.props.IntProperty(name="Local Bundle Adjustment Images", description="Number of images to optimize in local bundle adjustment.", default=6)
+    local_ba_min_tri_angle: bpy.props.FloatProperty(name="Local Bundle Adjustment Min Tri Angle", description="Minimum triangulation for images to be chosen in local bundle adjustment.", default=6.0)
+    min_focal_length_ratio: bpy.props.FloatProperty(name="Min Focal Length Ratio", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=0.1)
+    max_focal_length_ratio: bpy.props.FloatProperty(name="Max Focal Length Ratio", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=10.0)
+    max_extra_param: bpy.props.FloatProperty(name="Max Extra Param", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=1.0)
+    filter_max_reproj_error: bpy.props.FloatProperty(name="Filter Max Reprojection Error", description="Maximum reprojection error in pixels for observations.", default=4.0)
+    filter_min_tri_angle: bpy.props.FloatProperty(name="Filter Min Tri Angle", description="Minimum triangulation angle in degrees for stable 3D points.", default=1.5)
+    max_reg_trials: bpy.props.IntProperty(name="Max Reg Trials", description="Maximum number of trials to register an image.", default=3)
+    fix_existing_frames: bpy.props.BoolProperty(name="Fix Existing Frames", description="If reconstruction is provided as input, fix the existing frame poses.", default=False)
+    image_selection_method: bpy.props.EnumProperty(
+        name="Image Selection Method",
+        description="Method to find and select next best image to register.",
+        default='MIN_UNCERTAINTY',
+        items=[
+            ('MAX_VISIBLE_POINTS_NUM', 'Max Visible Points Num', ''),
+            ('MAX_VISIBLE_POINTS_RATIO', 'Max Visible Points Ratio', ''),
+            ('MIN_UNCERTAINTY', 'Min Uncertainty', ''),
+        ]
+    )
+
+    def build(self):
+        return pycolmap.IncrementalMapperOptions(
+            init_min_num_inliers=self.init_min_num_inliers,
+            init_max_error=self.init_max_error,
+            init_max_forward_motion=self.init_max_forward_motion,
+            init_min_tri_angle=self.init_min_tri_angle,
+            init_max_reg_trials=self.init_max_reg_trials,
+            abs_pose_max_error=self.abs_pose_max_error,
+            abs_pose_min_num_inliers=self.abs_pose_min_num_inliers,
+            abs_pose_min_inlier_ratio=self.abs_pose_min_inlier_ratio,
+            abs_pose_refine_focal_length=self.abs_pose_refine_focal_length,
+            abs_pose_refine_extra_params=self.abs_pose_refine_extra_params,
+            local_ba_num_images=self.local_ba_num_images,
+            local_ba_min_tri_angle=self.local_ba_min_tri_angle,
+            min_focal_length_ratio=self.min_focal_length_ratio,
+            max_focal_length_ratio=self.max_focal_length_ratio,
+            max_extra_param=self.max_extra_param,
+            filter_max_reproj_error=self.filter_max_reproj_error,
+            filter_min_tri_angle=self.filter_min_tri_angle,
+            max_reg_trials=self.max_reg_trials,
+            fix_existing_frames=self.fix_existing_frames,
+            image_selection_method=self.image_selection_method,
+        )
+
+class IncrementalTriangulatorOptionsPropertyGroup(bpy.types.PropertyGroup):
+    max_transitivity: bpy.props.IntProperty(
+        name="Max Transitivity",
+        description="Maximum transitivity to search for correspondences.",
+        default=1
+    )
+    create_max_angle_error: bpy.props.FloatProperty(
+        name="Create Max Angle Error",
+        description="Maximum angular error to create new triangulations.",
+        default=2.0
+    )
+    continue_max_angle_error: bpy.props.FloatProperty(
+        name="Continue Max Angle Error",
+        description="Maximum angular error to continue existing triangulations.",
+        default=2.0
+    )
+    merge_max_reproj_error: bpy.props.FloatProperty(
+        name="Merge Max Reproj Error",
+        description="Maximum reprojection error in pixels to merge triangulations.",
+        default=4.0
+    )
+    complete_max_reproj_error: bpy.props.FloatProperty(
+        name="Complete Max Reproj Error",
+        description="Maximum reprojection error to complete an existing triangulation.",
+        default=4.0
+    )
+    complete_max_transitivity: bpy.props.IntProperty(
+        name="Complete Max Transitivity",
+        description="Maximum transitivity for track completion.",
+        default=5
+    )
+    re_max_angle_error: bpy.props.FloatProperty(
+        name="Re Max Angle Error",
+        description="Maximum angular error to re-triangulate under-reconstructed image pairs.",
+        default=5.0
+    )
+    re_min_ratio: bpy.props.FloatProperty(
+        name="Re Min Ratio",
+        description="Minimum ratio of common triangulations between an image pair over the number of correspondences between that image pair to be considered as under-reconstructed.",
+        default=0.2
+    )
+    re_max_trials: bpy.props.IntProperty(
+        name="Re Max Trials",
+        description="Maximum number of trials to re-triangulate an image pair.",
+        default=1
+    )
+    min_angle: bpy.props.FloatProperty(
+        name="Min Angle",
+        description="Minimum pairwise triangulation angle for a stable triangulation.",
+        default=1.5
+    )
+    ignore_two_view_tracks: bpy.props.BoolProperty(
+        name="Ignore Two View Tracks",
+        description="Whether to ignore two-view tracks.",
+        default=True
+    )
+    min_focal_length_ratio: bpy.props.FloatProperty(
+        name="Min Focal Length Ratio",
+        description="The threshold used to filter and ignore images with degenerate intrinsics.",
+        default=0.1
+    )
+    max_focal_length_ratio: bpy.props.FloatProperty(
+        name="Max Focal Length Ratio",
+        description="The threshold used to filter and ignore images with degenerate intrinsics.",
+        default=10.0
+    )
+    max_extra_param: bpy.props.FloatProperty(
+        name="Max Extra Param",
+        description="The threshold used to filter and ignore images with degenerate intrinsics.",
+        default=1.0
+    )
+
+    def build(self):
+        return pycolmap.IncrementalTriangulatorOptions(
+            max_transitivity=self.max_transitivity,
+            create_max_angle_error=self.create_max_angle_error,
+            continue_max_angle_error=self.continue_max_angle_error,
+            merge_max_reproj_error=self.merge_max_reproj_error,
+            complete_max_reproj_error=self.complete_max_reproj_error,
+            complete_max_transitivity=self.complete_max_transitivity,
+            re_max_angle_error=self.re_max_angle_error,
+            re_min_ratio=self.re_min_ratio,
+            re_max_trials=self.re_max_trials,
+            min_angle=self.min_angle,
+            ignore_two_view_tracks=self.ignore_two_view_tracks,
+            min_focal_length_ratio=self.min_focal_length_ratio,
+            max_focal_length_ratio=self.max_focal_length_ratio,
+            max_extra_param=self.max_extra_param,
+        )
+
+class IncrementalPipelineOptionsPropertyGroup(bpy.types.PropertyGroup):
+    min_num_matches: bpy.props.IntProperty(name="Min Matches", description="The minimum number of matches for inlier matches to be considered.", default=15)
+    ignore_watermarks: bpy.props.BoolProperty(name="Ignore Watermarks", description="Whether to ignore the inlier matches of watermark image pairs.", default=False)
+    multiple_models: bpy.props.BoolProperty(name="Multiple Models", description="Whether to reconstruct multiple sub-models.", default=True)
+    max_num_models: bpy.props.IntProperty(name="Max Models", description="The number of sub-models to reconstruct.", default=50)
+    max_model_overlap: bpy.props.IntProperty(name="Max Model Overlap", description="The maximum number of overlapping images between sub-models. If the current sub-models shares more than this number of images with another model, then the reconstruction is stopped.", default=20)
+    min_model_size: bpy.props.IntProperty(name="Min Model Size", description="The minimum number of registered images of a sub-model, otherwise the sub-model is discarded. Note that the first sub-model is always kept independent of size.", default=10)
+    init_image_id1: bpy.props.IntProperty(name="Init Image Id 1", description="The image identifier of the first image used to initialize the reconstruction.", default=-1)
+    init_image_id2: bpy.props.IntProperty(name="Init Image Id 2", description="The image identifier of the second image used to initialize the reconstruction. Determined automatically if left unspecified.", default=-1)
+    init_num_trials: bpy.props.IntProperty(name="Init Num Trials", description="The number of trials to initialize the reconstruction.", default=200)
+    extract_colors: bpy.props.BoolProperty(name="Extract Colors", description="Whether to extract colors for reconstructed points.", default=True)
+    min_focal_length_ratio: bpy.props.FloatProperty(name="Min Focal Length Ratio", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=0.1)
+    max_focal_length_ratio: bpy.props.FloatProperty(name="Max Focal Length Ratio", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=10.0)
+    max_extra_param: bpy.props.FloatProperty(name="Max Extra Param", description="The threshold used to filter and ignore images with degenerate intrinsics.", default=1.0)
+    
+    bundle_adjustment: bpy.props.PointerProperty(type=IncrementalBundleAdjustmentPropertyGroup)
+
+    use_prior_position: bpy.props.BoolProperty(name="Use Prior Position", description="Whether to use priors on the camera positions.", default=False)
+    use_robust_loss_on_prior_position: bpy.props.BoolProperty(name="Use Robust Loss On Prior Position", description="Whether to use a robust loss on prior camera positions.", default=False)
+    prior_position_loss_scale: bpy.props.FloatProperty(name="Prior Position Loss Scale", description="Threshold on the residual for the robust position prior loss (chi2 for 3DOF at 95% = 7.815).", default=7.815)
+    snapshot_path: bpy.props.StringProperty(name="Snapshot Path", description="Path to a folder in which reconstruction snapshots will be saved during incremental reconstruction", default="", subtype="DIR_PATH")
+    snapshot_frames_freq: bpy.props.IntProperty(name="Snapshot Frames Freq", description="Frequency of registered images according to which reconstruction snapshots will be saved.", default=0)
+    fix_existing_frames: bpy.props.BoolProperty(name="Fix Existing Frames", description="If reconstruction is provided as input, fix the existing frame poses.", default=False)
+    
+    mapper: bpy.props.PointerProperty(type=IncrementalMapperOptionsPropertyGroup)
+    triangulation: bpy.props.PointerProperty(type=IncrementalTriangulatorOptionsPropertyGroup)
+
+    def build(self):
+        return pycolmap.IncrementalPipelineOptions(
+            min_num_matches=self.min_num_matches,
+            ignore_watermarks=self.ignore_watermarks,
+            multiple_models=self.multiple_models,
+            max_num_models=self.max_num_models,
+            max_model_overlap=self.max_model_overlap,
+            min_model_size=self.min_model_size,
+            init_image_id1=self.init_image_id1,
+            init_image_id2=self.init_image_id2,
+            init_num_trials=self.init_num_trials,
+            extract_colors=self.extract_colors,
+            min_focal_length_ratio=self.min_focal_length_ratio,
+            max_focal_length_ratio=self.max_focal_length_ratio,
+            max_extra_param=self.max_extra_param,
+
+            ba_refine_focal_length=self.bundle_adjustment.refine_focal_length,
+            ba_refine_principal_point=self.bundle_adjustment.refine_principal_point,
+            ba_refine_extra_params=self.bundle_adjustment.refine_extra_params,
+            ba_refine_sensor_from_rig=self.bundle_adjustment.refine_sensor_from_rig,
+            ba_min_num_residuals_for_cpu_multi_threading=self.bundle_adjustment.min_num_residuals_for_cpu_multi_threading,
+            ba_local_num_images=self.bundle_adjustment.local_num_images,
+            ba_local_function_tolerance=self.bundle_adjustment.local_function_tolerance,
+            ba_local_max_num_iterations=self.bundle_adjustment.local_max_num_iterations,
+            ba_global_frames_ratio=self.bundle_adjustment.global_frames_ratio,
+            ba_global_points_ratio=self.bundle_adjustment.global_points_ratio,
+            ba_global_frames_freq=self.bundle_adjustment.global_frames_freq,
+            ba_global_points_freq=self.bundle_adjustment.global_points_freq,
+            ba_global_function_tolerance=self.bundle_adjustment.global_function_tolerance,
+            ba_global_max_num_iterations=self.bundle_adjustment.global_max_num_iterations,
+            ba_local_max_refinements=self.bundle_adjustment.local_max_refinements,
+            ba_local_max_refinement_change=self.bundle_adjustment.local_max_refinement_change,
+            ba_global_max_refinements=self.bundle_adjustment.global_max_refinements,
+            ba_global_max_refinement_change=self.bundle_adjustment.global_max_refinement_change,
+            ba_use_gpu=self.bundle_adjustment.use_gpu,
+
+            use_prior_position=self.use_prior_position,
+            use_robust_loss_on_prior_position=self.use_robust_loss_on_prior_position,
+            prior_position_loss_scale=self.prior_position_loss_scale,
+            snapshot_path=self.snapshot_path,
+            snapshot_frames_freq=self.snapshot_frames_freq,
+            fix_existing_frames=self.fix_existing_frames,
+
+            mapper=self.mapper.build(),
+            triangulation=self.triangulation.build(),
+        )
+
 class ColmapCachedResultsPropertyGroup(bpy.types.PropertyGroup):
     num_descriptors: bpy.props.IntProperty()
     
@@ -269,6 +509,8 @@ class ColmapPropertyGroup(bpy.types.PropertyGroup):
     
     match_features: bpy.props.PointerProperty(type=MatchFeaturesPropertyGroup)
 
+    incremental_pipeline: bpy.props.PointerProperty(type=IncrementalPipelineOptionsPropertyGroup)
+
     cached_results: bpy.props.PointerProperty(type=ColmapCachedResultsPropertyGroup)
 
 def register():
@@ -280,6 +522,11 @@ def register():
     bpy.utils.register_class(VocabTreeMatchingOptionsPropertyGroup)
     bpy.utils.register_class(SequentialMatchingOptionsPropertyGroup)
     bpy.utils.register_class(MatchFeaturesPropertyGroup)
+
+    bpy.utils.register_class(IncrementalBundleAdjustmentPropertyGroup)
+    bpy.utils.register_class(IncrementalMapperOptionsPropertyGroup)
+    bpy.utils.register_class(IncrementalTriangulatorOptionsPropertyGroup)
+    bpy.utils.register_class(IncrementalPipelineOptionsPropertyGroup)
 
     bpy.utils.register_class(SiftExtractionOptionsPropertyGroup)
     bpy.utils.register_class(ExtractFeaturesPropertyGroup)
@@ -297,6 +544,11 @@ def unregister():
     bpy.utils.unregister_class(VocabTreeMatchingOptionsPropertyGroup)
     bpy.utils.unregister_class(SequentialMatchingOptionsPropertyGroup)
     bpy.utils.unregister_class(MatchFeaturesPropertyGroup)
+
+    bpy.utils.unregister_class(IncrementalBundleAdjustmentPropertyGroup)
+    bpy.utils.unregister_class(IncrementalMapperOptionsPropertyGroup)
+    bpy.utils.unregister_class(IncrementalTriangulatorOptionsPropertyGroup)
+    bpy.utils.unregister_class(IncrementalPipelineOptionsPropertyGroup)
 
     bpy.utils.unregister_class(SiftExtractionOptionsPropertyGroup)
     bpy.utils.unregister_class(ExtractFeaturesPropertyGroup)

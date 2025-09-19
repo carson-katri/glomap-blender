@@ -145,12 +145,14 @@ class BlockingOperator(bpy.types.Operator):
 
     _clip = None
 
+    _message = ""
+
     @classmethod
     def _draw_progress(cls, operator, self, context):
         if operator is None:
             return
         if operator._progress_total > 0:
-            self.layout.label(text=operator.bl_label)
+            self.layout.label(text=operator._message)
             self.layout.progress(text=f"{operator._progress_current} / {operator._progress_total}", factor=operator._progress_current / operator._progress_total)
 
     @classmethod
@@ -219,6 +221,8 @@ class BlockingOperator(bpy.types.Operator):
             return {'CANCELLED'}
         
         self._set_running(True)
+
+        self._message = self.bl_label
 
         self._progress_header = functools.partial(BlockingOperator._draw_progress, self)
         bpy.types.CLIP_HT_header.append(self._progress_header)

@@ -1,7 +1,7 @@
 import bpy
 
 from .operators import GlomapSolveOperator
-from ..colmap.operators import ColmapSetupTrackingSceneOperator
+from ..colmap.operators import ColmapSetupTrackingSceneOperator, ColmapClearReconstructionOperator
 
 class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
@@ -12,7 +12,7 @@ class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.space_data.mode == 'TRACKING'
+        return context.space_data.mode == 'TRACKING' and context.space_data.clip is not None
 
     def draw(self, context):
         layout = self.layout
@@ -39,6 +39,7 @@ class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
         col.operator(GlomapSolveOperator.bl_idname, text="Solve Camera Motion")
         
         layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
+        layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
 
 class BaseGlomapPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
