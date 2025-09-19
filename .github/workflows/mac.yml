@@ -29,7 +29,6 @@ jobs:
             glog \
             googletest \
             ceres-solver \
-            qt@5 \
             glew \
             cgal \
             sqlite3 \
@@ -50,8 +49,8 @@ jobs:
           cmake .. \
             -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" \
-            -DBUILD_SHARED_LIBS=OFF
+            -DBUILD_SHARED_LIBS=OFF \
+            -DGUI_ENABLED=OFF
           ninja
 
           cp glomap/glomap ../../glomap-blender/glomap_subprocess
@@ -59,6 +58,7 @@ jobs:
           # make it portable
           cd ../../glomap-blender/glomap_subprocess
           dylibbundler -x glomap -b -d libs -p @executable_path/libs --create-dir
+          chmod a+x glomap
 
       - name: Download Blender
         run: |

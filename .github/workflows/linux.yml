@@ -34,10 +34,7 @@ jobs:
             libgmock-dev \
             libsqlite3-dev \
             libglew-dev \
-            qtbase5-dev \
-            libqt5opengl5-dev \
             libcgal-dev \
-            libcgal-qt5-dev \
             libgl1-mesa-dri \
             libunwind-dev \
             libcurl4-openssl-dev \
@@ -73,7 +70,8 @@ jobs:
             -DCMAKE_INSTALL_PREFIX=./install \
             -DCMAKE_CUDA_ARCHITECTURES=50 \
             -DCUDA_ENABLED=true \
-            -DASAN_ENABLED=false
+            -DASAN_ENABLED=false \
+            -DGUI_ENABLED=OFF
           ninja -k 10000
       
       - name: Create GLOMAP AppImage
@@ -93,9 +91,13 @@ jobs:
           Type=Application
           Name=glomap
           Exec=glomap
+          Icon=glomap
           Terminal=true
           Categories=Utility;
           EOL
+
+          mkdir -p glomap.AppDir/usr/share/icons/hicolor/128x128/apps
+          touch glomap.AppDir/usr/share/icons/hicolor/128x128/apps/glomap.png
 
           ./linuxdeploy.AppImage --appdir glomap.AppDir --output appimage
           mv glomap*.AppImage glomap-blender/glomap_subprocess/glomap

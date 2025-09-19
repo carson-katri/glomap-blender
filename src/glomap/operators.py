@@ -23,7 +23,7 @@ class GlomapSolveOperator(bpy.types.Operator):
             executable = Path(__file__).parent / "../../glomap_subprocess/glomap"
 
         subprocess.run([
-            executable.resolve(),
+            str(executable.resolve()),
             "mapper",
             "--database_path", database_path,
             "--output_path", reconstruction_path
