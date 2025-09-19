@@ -1,7 +1,7 @@
 import bpy
 import subprocess
 from pathlib import Path
-import os
+import sys
 
 from ..utils import prepare_database
 
@@ -17,10 +17,12 @@ class GlomapSolveOperator(bpy.types.Operator):
         database_path, images_path, reconstruction_path = prepare_database(clip)
 
         # path to the precompiled glomap executable
-        if os.name == 'nt':
+        if sys.platform.startswith('win'):
             executable = Path(__file__).parent / "../../glomap_subprocess/glomap.exe"
+        elif sys.platform == 'darwin':
+            executable = Path(__file__).parent / "../../glomap_subprocess/glomap.app/Contents/MacOS/glomap"
         else:
-            executable = Path(__file__).parent / "../../glomap_subprocess/glomap"
+            executable = Path(__file__).parent / "../../glomap_subprocess/glomap.AppImage"
 
         subprocess.run([
             str(executable.resolve()),

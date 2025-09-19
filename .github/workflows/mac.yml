@@ -53,12 +53,29 @@ jobs:
             -DGUI_ENABLED=OFF
           ninja
 
-          cp glomap/glomap ../../glomap-blender/glomap_subprocess
-
           # make it portable
           cd ../../glomap-blender/glomap_subprocess
-          dylibbundler -x glomap -b -d . -p @executable_path --create-dir
-          chmod a+x glomap
+          mkdir -p glomap.app/Contents/MacOS
+          cp ../../glomap/build/glomap/glomap glomap.app/Contents/MacOS/glomap
+          cat > glomap.app/Contents/Info.plist <<EOL
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleExecutable</key>
+            <string>glomap</string>
+            <key>CFBundleIdentifier</key>
+            <string>colmap.glomap.blender</string>
+            <key>CFBundleName</key>
+            <string>glomap</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+          </dict>
+          </plist>
+          EOL
+
+          cmake -DBUNDLE_PATH="$(pwd)/glomap.app" -DEXTRA_SEARCH_DIRS="$(brew --prefix gcc)/lib/gcc/current" -P fixup.cmake
 
       - name: Download Blender
         run: |
