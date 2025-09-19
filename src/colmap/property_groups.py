@@ -59,13 +59,13 @@ class ExtractFeaturesPropertyGroup(bpy.types.PropertyGroup):
     # SiftExtractionOptions
     sift_options: bpy.props.PointerProperty(type=SiftExtractionOptionsPropertyGroup)
 
-    def run(self, database_path, image_path):
-        return pycolmap.extract_features(
-            database_path,
-            image_path,
-            camera_mode=pycolmap.CameraMode(self.camera_mode),
-            sift_options=self.sift_options.build()
-        )
+    def build(self, database_path, image_path):
+        return {
+            'database_path': database_path,
+            'image_path': image_path,
+            'camera_mode': pycolmap.CameraMode(self.camera_mode),
+            'sift_options': self.sift_options.build()
+        }
 
 class RansacOptionsPropertyGroup(bpy.types.PropertyGroup):
     max_error: bpy.props.FloatProperty(name="Max Error", default=4.0)
@@ -234,36 +234,24 @@ class MatchFeaturesPropertyGroup(bpy.types.PropertyGroup):
     # TwoViewGeometryOptions
     verification_options: bpy.props.PointerProperty(type=TwoViewGeometryOptionsPropertyGroup)
 
-    def match(self, database_path):
+    def matching_options(self):
         match self.matcher:
             case 'EXHAUSTIVE':
-                return pycolmap.match_exhaustive(
-                    database_path,
-                    sift_options=self.sift_options.build(),
-                    matching_options=self.exhaustive.build(),
-                    verification_options=self.verification_options.build()
-                )
+                return self.exhaustive.build()
             case 'SPATIAL':
-                return pycolmap.match_spatial(
-                    database_path,
-                    sift_options=self.sift_options.build(),
-                    matching_options=self.spatial.build(),
-                    verification_options=self.verification_options.build()
-                )
+                return self.spatial.build()
             case 'VOCABTREE':
-                return pycolmap.match_vocabtree(
-                    database_path,
-                    sift_options=self.sift_options.build(),
-                    matching_options=self.vocab_tree.build(),
-                    verification_options=self.verification_options.build()
-                )
+                return self.vocab_tree.build()
             case 'SEQUENTIAL':
-                return pycolmap.match_sequential(
-                    database_path,
-                    sift_options=self.sift_options.build(),
-                    matching_options=self.sequential.build(),
-                    verification_options=self.verification_options.build()
-                )
+                return self.sequential.build()
+
+    def build(self, database_path):
+        return self.matcher, {
+            'database_path': database_path,
+            'sift_options': self.sift_options.build(),
+            'matching_options': self.matching_options(),
+            'verification_options': self.verification_options.build()
+        }
 
 class ColmapCachedResultsPropertyGroup(bpy.types.PropertyGroup):
     num_descriptors: bpy.props.IntProperty()

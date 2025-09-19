@@ -1,6 +1,10 @@
 import bpy
 from pathlib import Path
 import shutil
+import glob
+import threading
+import functools
+import re
 
 from PIL import Image
 import av
@@ -109,3 +113,121 @@ def clear_all(clip):
 
     clear_reconstruction(clip)
     clear_images(clip)
+
+class BlockingOperator(bpy.types.Operator):
+    def prepare(self, context):
+        pass
+    def execute_async(self, args):
+        pass
+    
+    parse_logs = True
+    progress_expression = re.compile(r"Processed file \[(\d+)\/(\d+)\]")
+
+    def _set_running(self, running):
+        self._running = running
+        BlockingOperator._running_lock[type(self)] = running
+
+    def _is_running(self):
+        return BlockingOperator._running_lock.get(type(self), False)
+
+    _running = False
+
+    _running_lock = {} # class state
+
+    _log_pos = 0
+    _log_partial_line = ""
+
+    _progress_header = None
+    _progress_current = 0
+    _progress_total = 0
+
+    _timer = None
+
+    _clip = None
+
+    @classmethod
+    def _draw_progress(cls, operator, self, context):
+        if operator is None:
+            return
+        if operator._progress_total > 0:
+            self.layout.label(text=operator.bl_label)
+            self.layout.progress(text=f"{operator._progress_current} / {operator._progress_total}", factor=operator._progress_current / operator._progress_total)
+
+    @classmethod
+    def _update_progress(cls, operator):
+        if operator.parse_logs:
+            log_paths = glob.glob(str(Path(bpy.app.tempdir) / "colmap_log_*"))
+            if len(log_paths) > 0:
+                with open(log_paths[0], "r", errors="ignore") as f:
+                    f.seek(operator._log_pos)
+                    operator._log_partial_line += f.read()
+                    operator._log_pos = f.tell()
+                    
+                    progress_match = operator.progress_expression.search(operator._log_partial_line)
+                    if progress_match:
+                        operator._progress_current = int(progress_match.group(1))
+                        operator._progress_total = int(progress_match.group(2))
+                        operator._log_partial_line = ""
+                        for area in bpy.context.screen.areas:
+                            if area.type == 'CLIP_EDITOR':
+                                area.tag_redraw()
+        else:
+            for area in bpy.context.screen.areas:
+                if area.type == 'CLIP_EDITOR':
+                    area.tag_redraw()
+        if operator._running:
+            return 0.1
+        else:
+            return None
+
+    def modal(self, context, event):
+        if self._running:
+            return {'PASS_THROUGH'}
+        else:
+            if bpy.app.timers.is_registered(self._timer):
+                bpy.app.timers.unregister(self._timer)
+            bpy.types.CLIP_HT_header.remove(self._progress_header)
+            self._progress_header = None
+            self._log_partial_line = ""
+            self._log_pos = 0
+            self._set_running(False)
+            for area in bpy.context.screen.areas:
+                if area.type == 'CLIP_EDITOR':
+                    area.tag_redraw()
+            refresh_cache(self._clip)
+            self._clip = None
+            return {'FINISHED'}
+
+    def execute(self, context):
+        self._progress_total = 1 # get the progress bar to show right away
+        self._clip = context.space_data.clip
+
+        args = self.prepare(context)
+
+        def run(args):
+            self.execute_async(args)
+            self._running = False
+        
+        t = threading.Thread(target=run, args=args)
+        t.start()
+
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        if self._is_running():
+            self.report({'WARNING'}, f"'{self.bl_label}' is already running")
+            return {'CANCELLED'}
+        
+        self._set_running(True)
+
+        self._progress_header = functools.partial(BlockingOperator._draw_progress, self)
+        bpy.types.CLIP_HT_header.append(self._progress_header)
+
+        self._timer = functools.partial(BlockingOperator._update_progress, self)
+        bpy.app.timers.register(self._timer, first_interval=0.1)
+
+        self.execute(context)
+        
+        context.window_manager.modal_handler_add(self)
+        
+        return {'RUNNING_MODAL'}

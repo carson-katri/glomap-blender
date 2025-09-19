@@ -2,66 +2,166 @@ import bpy
 import mathutils
 import math
 import os
+import threading
+import queue
+from pathlib import Path
+import glob
 import re
 
 import pycolmap
 
-from ..utils import prepare_database, refresh_cache, clear_feature_extraction, clear_feature_matches, clear_reconstruction, clear_images, clear_all
+from ..utils import prepare_database, refresh_cache, clear_feature_extraction, clear_feature_matches, clear_reconstruction, clear_images, clear_all, BlockingOperator
 
-class ColmapExtractFeaturesOperator(bpy.types.Operator):
+class ReportWriter:
+    def __init__(self, report):
+        self.report = report
+        self.buffer = ""
+    
+    def write(self, text):
+        self.buffer += text
+        while '\n' in self.buffer:
+            line, self.buffer = self.buffer.split('\n', 1)
+            line = line.strip()
+            if line:  # avoid empty lines
+                self.report({'INFO'}, line)
+    
+    def flush(self):
+        if self.buffer.strip():
+            self.operator.report({'INFO'}, self.buffer.strip())
+            self.buffer = ""
+
+_is_running = False
+_last_pos = 0
+_partial_line = ""
+_log_queue = queue.Queue()
+def watch_log():
+    global _last_pos, _partial_line
+
+    log_path = glob.glob(str(Path(bpy.app.tempdir) / "colmap_log_*"))[0]
+    
+    with open(log_path, "r", errors="ignore") as f:
+        f.seek(_last_pos)
+        new_data = f.read()
+        _last_pos = f.tell()  # move cursor immediately
+    
+    if not new_data:
+        if not _is_running:
+            return None
+        else:
+            return 0.5
+
+    new_data = _partial_line + new_data
+
+    lines = new_data.split("\n")
+
+    if new_data[-1] != "\n":
+        _partial_line = lines.pop()
+    else:
+        _partial_line = ""
+
+    for line in lines:
+        if line.strip():
+            _log_queue.put(line)
+
+    
+    if not _is_running:
+        return None
+    else:
+        return 0.1
+
+# _progress_current = 0
+# _progress_total = 0
+# _progress_regex = re.compile(r"Processed file \[(\d+)\/(\d+)\]")
+# def draw_progress(self, context):
+#     if context.space_data.type != 'CLIP_EDITOR':
+#         return
+#     if _is_running and _progress_total > 0:
+#         self.layout.label(text="Extracting Features")
+#         self.layout.progress(text=f"{_progress_current} / {_progress_total}", factor=_progress_current / _progress_total)
+
+class ColmapExtractFeaturesOperator(BlockingOperator):
     bl_idname = "colmap.extract_features"
     bl_label = "Extract Features"
     bl_description = "Automatically find features to track across all frames"
 
-    def execute(self, context):
+    def prepare(self, context):
         sc = context.space_data
         clip = sc.clip
 
         database_path, images_path, _ = prepare_database(clip)
 
-        clip.colmap.extract_features.run(database_path, images_path)
+        return (clip.colmap.extract_features.build(database_path, images_path),)
 
-        refresh_cache(clip)
+    def execute_async(self, args):
+        return pycolmap.extract_features(**args)
 
-        return {'FINISHED'}
-
-class ColmapMatchFeaturesOperator(bpy.types.Operator):
+class ColmapMatchFeaturesOperator(BlockingOperator):
     bl_idname = "colmap.match_features"
     bl_label = "Match Features"
     bl_description = "Match features between frames"
 
-    def execute(self, context):
+    progress_expression = re.compile(r"Matching \w+ \[(\d+)\/(\d+)")
+
+    def prepare(self, context):
         sc = context.space_data
         clip = sc.clip
 
         database_path, _, _ = prepare_database(clip)
 
-        clip.colmap.match_features.match(database_path)
+        matcher, args = clip.colmap.match_features.build(database_path)
 
-        refresh_cache(clip)
+        match matcher:
+            case 'EXHAUSTIVE':
+                return ((matcher, args),)
+            case 'SPATIAL':
+                return ((matcher, args),)
+            case 'VOCABTREE':
+                return ((matcher, args),)
+            case 'SEQUENTIAL':
+                return ((matcher, args),)
 
-        return {'FINISHED'}
+    def execute_async(self, args):
+        matcher, kwargs = args
+        match matcher:
+            case 'EXHAUSTIVE':
+                return pycolmap.match_exhaustive(**kwargs)
+            case 'SPATIAL':
+                return pycolmap.match_spatial(**kwargs)
+            case 'VOCABTREE':
+                return pycolmap.match_vocabtree(**kwargs)
+            case 'SEQUENTIAL':
+                return pycolmap.match_sequential(**kwargs)
 
-class ColmapSolveOperator(bpy.types.Operator):
+class ColmapSolveOperator(BlockingOperator):
     bl_idname = "colmap.solve"
     bl_label = "Solve"
     bl_description = "Solve camera motion with COLMAP. This is slower than GLOMAP and should only be used if GLOMAP fails"
 
-    def execute(self, context):
+    parse_logs = False
+
+    def prepare(self, context):
         sc = context.space_data
         clip = sc.clip
         
-        database_path, images_path, reconstruction_path = prepare_database(clip)
+        database_path, image_path, reconstruction_path = prepare_database(clip)
 
+        return ({
+            'database_path': database_path,
+            'image_path': image_path,
+            'output_path': reconstruction_path,
+        },)
+
+    def execute_async(self, args):
+        self._progress_total = len(os.listdir(args['image_path']))
+        def initial_image_pair_callback():
+            self._progress_current = 0
+        def next_image_callback():
+            self._progress_current += 1
         pycolmap.incremental_mapping(
-            database_path,
-            images_path,
-            reconstruction_path,
-            initial_image_pair_callback=lambda: print('initial pair'),
-            next_image_callback=lambda: print('next image'),
+            **args,
+            initial_image_pair_callback=initial_image_pair_callback,
+            next_image_callback=next_image_callback,
         )
-
-        refresh_cache(clip)
 
         return {'FINISHED'}
 

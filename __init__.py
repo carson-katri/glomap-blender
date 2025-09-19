@@ -15,12 +15,15 @@ from .src.glomap import register as register_glomap
 from .src.glomap import unregister as unregister_glomap
 
 def register():
-    register_colmap()
+    log_path = Path(bpy.app.tempdir) / "colmap_log_"
+    pycolmap.logging.set_log_destination(pycolmap.logging.Level.INFO, log_path)
+
     register_glomap()
+    register_colmap()
 
 def unregister():
-    unregister_colmap()
     unregister_glomap()
+    unregister_colmap()
 
 if __name__ == "__main__":
     register()

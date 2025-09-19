@@ -6,7 +6,101 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_linux:
+    runs-on: ubuntu-latest
+    env:
+      BLENDER_URL: "https://cdn.builder.blender.org/download/daily/archive/blender-4.5.3-candidate+v45.ad3eb9baf0a6-linux.x86_64-release.tar.xz"
+      WHEELS_DIR: wheels
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup GLOMAP build
+        run: |
+          sudo apt-get update && sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ninja-build \
+            libboost-program-options-dev \
+            libboost-graph-dev \
+            libboost-system-dev \
+            libeigen3-dev \
+            libceres-dev \
+            libflann-dev \
+            libfreeimage-dev \
+            libmetis-dev \
+            libgoogle-glog-dev \
+            libgtest-dev \
+            libgmock-dev \
+            libsqlite3-dev \
+            libglew-dev \
+            qtbase5-dev \
+            libqt5opengl5-dev \
+            libcgal-dev \
+            libcgal-qt5-dev \
+            libgl1-mesa-dri \
+            libunwind-dev \
+            libcurl4-openssl-dev \
+            xvfb \
+            musl-tools
+          
+          CMAKE_VERSION=3.28.6
+          CMAKE_DIR=cmake-${CMAKE_VERSION}-linux-x86_64
+          wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${CMAKE_DIR}.tar.gz
+          tar -xzf ${CMAKE_DIR}.tar.gz
+          sudo cp -r ${CMAKE_DIR}/* /usr/local/
+          rm -rf ${CMAKE_DIR}*
+      - name: Clone and build GLOMAP
+        run: |
+          cd ..
+          git clone https://github.com/colmap/glomap/ glomap
+          cd glomap
+          git checkout 4f475de4813f572926980bd2a433b44f05a95bcf
+          set -x
+          cmake --version
+          mkdir build
+          cd build
+          export CC=musl-gcc
+          cmake .. \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=./install \
+            -DCMAKE_CUDA_ARCHITECTURES=50 \
+            -DCUDA_ENABLED=false \
+            -DTESTS_ENABLED=ON \
+            -DASAN_ENABLED=false \
+            -DCMAKE_EXE_LINKER_FLAGS="-static" \
+            -DBUILD_SHARED_LIBS=OFF
+          ninja -k 10000
+
+      - name: Download Blender
+        run: |
+          curl -L "$BLENDER_URL" -o blender.tar.xz
+          tar -xf blender.tar.xz
+          # Find the extracted Blender folder (e.g., blender-4.5.0-linux-x64)
+          BLENDER_DIR=$(find . -maxdepth 1 -type d -name "blender-*" | head -n1)
+          echo "Blender extracted to $BLENDER_DIR"
+          mv "$BLENDER_DIR" blender
+
+      - name: Download Python wheels
+        run: |
+          mkdir -p ${WHEELS_DIR}
+          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+
+      - name: Build extension
+        run: |
+          mkdir -p dist
+          blender/blender --command extension build --split-platforms --output-dir dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-extension
+          path: dist/
+  build_macos:
     runs-on: macos-latest
     env:
       BLENDER_URL: "https://cdn.builder.blender.org/download/daily/archive/blender-4.5.3-candidate+v45.ad3eb9baf0a6-darwin.arm64-release.dmg"
@@ -50,7 +144,8 @@ jobs:
             -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
             -DTESTS_ENABLED=ON \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)"
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" \
+            -DBUILD_SHARED_LIBS=OFF
           ninja
           cp glomap/glomap ../../glomap-blender/glomap_subprocess
 

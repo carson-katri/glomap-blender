@@ -130,6 +130,8 @@ class CLIP_PT_ColmapFeatureMatchingPanel(bpy.types.Panel):
         row.scale_y = 2.0
         row.operator(ColmapMatchFeaturesOperator.bl_idname)
         row.operator(ColmapRefreshCacheOperator.bl_idname, text="", icon="FILE_REFRESH")
+        
+        layout.operator(ColmapClearFeatureMatchesOperator.bl_idname, icon="TRASH")
 
         col = layout.column()
         col.alignment = 'RIGHT'
@@ -201,6 +203,8 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
         col.operator(ColmapSolveOperator.bl_idname, text="Solve Camera Motion")
         
         layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
+        
+        layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
 
 class BaseColmapFeatureMatchingPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
