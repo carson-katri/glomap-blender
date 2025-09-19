@@ -57,7 +57,7 @@ jobs:
 
           # make it portable
           cd ../../glomap-blender/glomap_subprocess
-          dylibbundler -x glomap -b -d libs -p @executable_path/libs --create-dir
+          dylibbundler -x glomap -b -d . -p @executable_path --create-dir
           chmod a+x glomap
 
       - name: Download Blender
