@@ -45,7 +45,7 @@ jobs:
             xvfb \
             libopenblas-dev \
             libopenblas-pthread-dev \
-            musl-tools
+            zig
           
           CMAKE_VERSION=3.28.6
           CMAKE_DIR=cmake-${CMAKE_VERSION}-linux-x86_64
@@ -63,8 +63,8 @@ jobs:
           cmake --version
           mkdir build
           cd build
-          export CC=musl-gcc
-          export CXX=musl-g++
+          export CC="zig cc"
+          export CXX="zig c++"
           cmake .. \
             -GNinja \
             -DCMAKE_BUILD_TYPE=Release \
