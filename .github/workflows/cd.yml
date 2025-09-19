@@ -45,7 +45,6 @@ jobs:
             xvfb \
             libopenblas-dev \
             libopenblas-pthread-dev \
-            libopenblas0-static \
             musl-tools
           
           CMAKE_VERSION=3.28.6
