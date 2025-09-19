@@ -75,7 +75,22 @@ jobs:
             -DCUDA_ENABLED=true \
             -DASAN_ENABLED=false
           ninja -k 10000
+      
+      - name: Create GLOMAP AppImage
+        run: |
+          cd ..
+          wget -O linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy.AppImage
+          wget -O appimagetool.AppImage https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool.AppImage
+          
+          cd ..
+          mkdir -p glomap.AppDir/usr/bin
+          cp glomap/build/glomap/glomap glomap.AppDir/usr/bin/
 
+          ./linuxdeploy.AppImage --appdir glomap.AppDir --output appimage
+          mv glomap*.AppImage glomap-blender/glomap_subprocess/glomap
+          
       - name: Download Blender
         run: |
           cd ..
@@ -150,6 +165,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" \
             -DBUILD_SHARED_LIBS=OFF
           ninja
+
           cp glomap/glomap ../../glomap-blender/glomap_subprocess
 
           # make it portable
@@ -184,4 +200,48 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: glomap-blender-macos-arm64
+          path: dist/
+  build_windows:
+    runs-on: ubuntu-22.04
+    env:
+      BLENDER_URL: "https://cdn.builder.blender.org/download/daily/archive/blender-4.5.3-candidate+v45.ad3eb9baf0a6-linux.x86_64-release.tar.xz"
+      WHEELS_DIR: wheels
+      GLOMAP_BINARY: "https://github.com/colmap/glomap/releases/download/1.1.0/glomap-x64-windows-cuda.zip"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download prebuilt GLOMAP
+        run: |
+          cd ..
+          curl -L "$GLOMAP_BINARY" -o glomap-x64-windows-cuda.zip
+          unzip glomap-x64-windows-cuda.zip
+          mv bin/* glomap-blender/glomap_subprocess/
+
+      - name: Download Blender
+        run: |
+          cd ..
+          curl -L "$BLENDER_URL" -o blender.tar.xz
+          tar -xf blender.tar.xz
+          # Find the extracted Blender folder (e.g., blender-4.5.0-linux-x64)
+          BLENDER_DIR=$(find . -maxdepth 1 -type d -name "blender-*" | head -n1)
+          echo "Blender extracted to $BLENDER_DIR"
+          mv "$BLENDER_DIR" blender
+
+      - name: Download Python wheels
+        run: |
+          mkdir -p ${WHEELS_DIR}
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+
+      - name: Build extension
+        run: |
+          mkdir -p dist
+          ../blender/blender --command extension build --split-platforms --output-dir dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: glomap-blender-windows-x64
           path: dist/
