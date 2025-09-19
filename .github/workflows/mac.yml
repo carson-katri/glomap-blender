@@ -1,0 +1,91 @@
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build_macos:
+    runs-on: macos-latest
+    env:
+      BLENDER_URL: "https://cdn.builder.blender.org/download/daily/archive/blender-4.5.3-candidate+v45.ad3eb9baf0a6-darwin.arm64-release.dmg"
+      WHEELS_DIR: wheels
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup GLOMAP build
+        run: |
+          brew install \
+            cmake \
+            ninja \
+            boost@1.85 \
+            eigen \
+            flann \
+            freeimage \
+            metis \
+            glog \
+            googletest \
+            ceres-solver \
+            qt@5 \
+            glew \
+            cgal \
+            sqlite3 \
+            ccache \
+            dylibbundler
+          brew unlink boost
+          brew link --force --overwrite boost@1.85
+        
+      - name: Clone and build GLOMAP
+        run: |
+          cd ..
+          git clone https://github.com/colmap/glomap/ glomap
+          cd glomap
+          git checkout 4f475de4813f572926980bd2a433b44f05a95bcf
+          cmake --version
+          mkdir build
+          cd build
+          cmake .. \
+            -GNinja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt@5)" \
+            -DBUILD_SHARED_LIBS=OFF
+          ninja
+
+          cp glomap/glomap ../../glomap-blender/glomap_subprocess
+
+          # make it portable
+          cd ../../glomap-blender/glomap_subprocess
+          dylibbundler -x glomap -b -d libs -p @executable_path/libs --create-dir
+
+      - name: Download Blender
+        run: |
+          cd ..
+          curl -L "$BLENDER_URL" -o blender.dmg
+          hdiutil attach blender.dmg -nobrowse -quiet
+          VOL=$(ls /Volumes | grep -i Blender | head -n1)
+          echo "Mounted at /Volumes/$VOL"
+
+          mkdir blender
+          cp -R "/Volumes/$VOL/Blender.app" blender/
+          hdiutil detach "/Volumes/$VOL" -quiet
+
+      - name: Download Python wheels
+        run: |
+          mkdir -p ${WHEELS_DIR}
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+
+      - name: Build extension
+        run: |
+          mkdir -p dist
+          ../blender/Blender.app/Contents/MacOS/Blender --command extension build --split-platforms --output-dir dist
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: glomap-blender-macos-arm64
+          path: dist/
