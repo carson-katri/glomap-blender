@@ -101,6 +101,7 @@ jobs:
 
           ./linuxdeploy.AppImage --appdir glomap.AppDir --output appimage
           mv glomap*.AppImage glomap-blender/glomap_subprocess/glomap.AppImage
+          chmod a+x glomap-blender/glomap_subprocess/glomap.AppImage
 
       - name: Download Blender
         run: |

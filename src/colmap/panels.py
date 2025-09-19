@@ -1,5 +1,5 @@
 import bpy
-from .operators import ColmapExtractFeaturesOperator, ColmapMatchFeaturesOperator, ColmapSolveOperator, ColmapSetupTrackingSceneOperator, ColmapRefreshCacheOperator, ColmapClearCacheOperator, ColmapClearFeatureExtractionOperator, ColmapClearFeatureMatchesOperator, ColmapClearReconstructionOperator, ColmapClearImagesOperator
+from .operators import ColmapExtractFeaturesOperator, ColmapMatchFeaturesOperator, ColmapSolveOperator, ColmapSetupTrackingSceneOperator, ColmapRefreshCacheOperator, ColmapClearCacheOperator, ColmapClearFeatureExtractionOperator, ColmapClearFeatureMatchesOperator, ColmapClearReconstructionOperator, ColmapClearImagesOperator, ColmapSetOriginOperator
 
 class CLIP_PT_ColmapFeatureExtractionPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
@@ -10,7 +10,7 @@ class CLIP_PT_ColmapFeatureExtractionPanel(bpy.types.Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.space_data.mode == 'TRACKING'
+        return context.space_data.mode == 'TRACKING' and context.space_data.clip is not None
 
     def draw(self, context):
         layout = self.layout
@@ -81,7 +81,7 @@ class CLIP_PT_ColmapFeatureMatchingPanel(bpy.types.Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.space_data.mode == 'TRACKING'
+        return context.space_data.mode == 'TRACKING' and context.space_data.clip is not None
 
     def draw(self, context):
         layout = self.layout
@@ -224,6 +224,9 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
         col.operator(ColmapSolveOperator.bl_idname, text="Solve Camera Motion")
         
         layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
+        
+        col = layout.column(align=True)
+        col.operator(ColmapSetOriginOperator.bl_idname)
         
         layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
 

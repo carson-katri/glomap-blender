@@ -124,13 +124,20 @@ class ColmapSetupTrackingSceneOperator(bpy.types.Operator):
         mesh = bpy.data.meshes.new("Track Point Cloud")
         obj = bpy.data.objects.new("Track Point Cloud", mesh)
         bpy.context.collection.objects.link(obj)
+        
         obj.parent = root_empty
+        obj.hide_render = True
+
         mesh.from_pydata(positions, [], [])  # only verts, no edges/faces
         mesh.update()
         color_layer = mesh.color_attributes.new(name="Color", domain='POINT', type='BYTE_COLOR')
         for i, c in enumerate(colors):
             color_layer.data[i].color = (*c, 1.0)  # RGBA
         
+        obj.lock_location = (True, True, True)
+        obj.lock_rotation = (True, True, True)
+        obj.lock_scale = (True, True, True)
+
         # create camera
         camera = bpy.data.cameras.new("Track Camera")
         camera.show_background_images = True
@@ -181,6 +188,35 @@ class ColmapSetupTrackingSceneOperator(bpy.types.Operator):
             camera_obj.keyframe_insert(data_path="location", frame=frame)
             camera_obj.keyframe_insert(data_path="rotation_quaternion", frame=frame)
 
+        return {'FINISHED'}
+
+class ColmapSetOriginOperator(bpy.types.Operator):
+    bl_idname = "colmap.set_origin"
+    bl_label = "Set Origin"
+    bl_description = "Set selected vertex as origin by moving the camera and point cloud in 3D space"
+
+    def execute(self, context):
+        camera = context.scene.camera
+        track_root = camera.parent
+        active_object = context.active_object
+
+        was_edit_mode = active_object.mode == 'EDIT'
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        selected_vertex = next((v for v in active_object.data.vertices if v.select == True), None)
+        if selected_vertex is None:
+            self.report({'ERROR'}, "Select a vertex to mark the scene origin point")
+            return {'FINISHED'}
+
+        vert_world = active_object.matrix_world @ selected_vertex.co
+        translation = mathutils.Matrix.Translation(-vert_world)
+        
+        track_root.matrix_world = translation @ track_root.matrix_world
+
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='EDIT')
+        
         return {'FINISHED'}
 
 class ColmapRefreshCacheOperator(bpy.types.Operator):
@@ -272,6 +308,8 @@ def register():
     
     bpy.utils.register_class(ColmapRefreshCacheOperator)
 
+    bpy.utils.register_class(ColmapSetOriginOperator)
+
     bpy.utils.register_class(ColmapClearCacheOperator)
     bpy.utils.register_class(ColmapClearFeatureExtractionOperator)
     bpy.utils.register_class(ColmapClearFeatureMatchesOperator)
@@ -288,6 +326,8 @@ def unregister():
     bpy.utils.unregister_class(ColmapSetupTrackingSceneOperator)
 
     bpy.utils.unregister_class(ColmapRefreshCacheOperator)
+
+    bpy.utils.unregister_class(ColmapSetOriginOperator)
     
     bpy.utils.unregister_class(ColmapClearCacheOperator)
     bpy.utils.unregister_class(ColmapClearFeatureExtractionOperator)

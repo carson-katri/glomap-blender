@@ -1,7 +1,7 @@
 import bpy
 
 from .operators import GlomapSolveOperator
-from ..colmap.operators import ColmapSetupTrackingSceneOperator, ColmapClearReconstructionOperator
+from ..colmap.operators import ColmapSetupTrackingSceneOperator, ColmapClearReconstructionOperator, ColmapSetOriginOperator
 
 class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
@@ -39,6 +39,10 @@ class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
         col.operator(GlomapSolveOperator.bl_idname, text="Solve Camera Motion")
         
         layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
+
+        col = layout.column(align=True)
+        col.operator(ColmapSetOriginOperator.bl_idname)
+
         layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
 
 class BaseGlomapPanel(bpy.types.Panel):
