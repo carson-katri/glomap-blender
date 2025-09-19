@@ -87,6 +87,16 @@ jobs:
           mkdir -p glomap.AppDir/usr/bin
           cp glomap/build/glomap/glomap glomap.AppDir/usr/bin/
 
+          mkdir -p glomap.AppDir/usr/share/applications
+          cat > glomap.AppDir/usr/share/applications/glomap.desktop <<EOL
+          [Desktop Entry]
+          Type=Application
+          Name=glomap
+          Exec=glomap
+          Terminal=true
+          Categories=Utility;
+          EOL
+
           ./linuxdeploy.AppImage --appdir glomap.AppDir --output appimage
           mv glomap*.AppImage glomap-blender/glomap_subprocess/glomap
 
@@ -103,9 +113,9 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
@@ -186,9 +196,9 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
-          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
-          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/Blender.app/Contents/Resources/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
@@ -230,9 +240,9 @@ jobs:
       - name: Download Python wheels
         run: |
           mkdir -p ${WHEELS_DIR}
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
-          ../blender/4.5/python/bin/python3.11 -m pip download --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=macosx_14_0_arm64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=manylinux_2_28_x86_64
+          ../blender/4.5/python/bin/python3.11 -m pip download --no-deps --dest ${WHEELS_DIR} -r requirements.txt --only-binary=:all: --python-version=3.11 --platform=win_amd64
 
       - name: Build extension
         run: |
