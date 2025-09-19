@@ -84,13 +84,12 @@ jobs:
           wget -O appimagetool.AppImage https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
           
-          cd ..
           mkdir -p glomap.AppDir/usr/bin
           cp glomap/build/glomap/glomap glomap.AppDir/usr/bin/
 
           ./linuxdeploy.AppImage --appdir glomap.AppDir --output appimage
           mv glomap*.AppImage glomap-blender/glomap_subprocess/glomap
-          
+
       - name: Download Blender
         run: |
           cd ..
