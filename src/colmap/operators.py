@@ -204,7 +204,7 @@ class ColmapSetOriginOperator(bpy.types.Operator):
         if was_edit_mode:
             bpy.ops.object.mode_set(mode='OBJECT')
 
-        selected_vertex = next((v for v in active_object.data.vertices if v.select == True), None)
+        selected_vertex = next((v for v in active_object.data.vertices if v.select), None)
         if selected_vertex is None:
             self.report({'ERROR'}, "Select a vertex to mark the scene origin point")
             return {'FINISHED'}
@@ -217,6 +217,97 @@ class ColmapSetOriginOperator(bpy.types.Operator):
         if was_edit_mode:
             bpy.ops.object.mode_set(mode='EDIT')
         
+        return {'FINISHED'}
+
+class ColmapSetFloorOperator(bpy.types.Operator):
+    bl_idname = "colmap.set_floor"
+    bl_label = "Set Floor"
+    bl_description = "Select 3 vertices in the point cloud to use as the floor plane"
+
+    def execute(self, context):
+        camera = context.scene.camera
+        track_root = camera.parent
+        active_object = context.active_object
+
+        was_edit_mode = active_object.mode == 'EDIT'
+
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        mesh = active_object.data
+
+        selection = [active_object.matrix_world @ v.co for v in mesh.vertices if v.select]
+        if len(selection) != 3:
+            self.report({'ERROR'}, f"Select 3 vertices in the point cloud")
+            if was_edit_mode:
+                bpy.ops.object.mode_set(mode='EDIT')
+            return {'CANCELLED'}
+
+        p1, p2, p3 = selection
+
+        normal = (p2 - p1).cross(p3 - p1)
+        normal.normalize()
+
+        target = mathutils.Vector((0.0, 0.0, 1.0))
+
+        rot_quat = normal.rotation_difference(target)
+
+        orig_loc = active_object.matrix_world.to_translation()
+        orig_basis = active_object.matrix_world.to_3x3()
+
+        rot_mat = rot_quat.to_matrix()
+        new_basis = rot_mat @ orig_basis
+
+        track_root.matrix_world = mathutils.Matrix.Translation(orig_loc) @ new_basis.to_4x4()
+
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='EDIT')
+
+        return {'FINISHED'}
+
+class ColmapSetScaleOperator(bpy.types.Operator):
+    bl_idname = "colmap.set_scale"
+    bl_label = "Set Scale"
+    bl_description = "Select 3 vertices in the point cloud to use as the floor plane"
+
+    distance: bpy.props.FloatProperty(name="Distance", description="Distance between two vertices used for scene scaling", default=1)
+
+    def execute(self, context):
+        camera = context.scene.camera
+        track_root = camera.parent
+        active_object = context.active_object
+
+        was_edit_mode = active_object.mode == 'EDIT'
+
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='OBJECT')
+
+        selection = [active_object.matrix_world @ v.co for v in active_object.data.vertices if v.select]
+        if len(selection) != 2:
+            self.report({'ERROR'}, f"Exactly 2 vertices must be selected (found {len(sel_verts)}).")
+            if was_edit_mode:
+                bpy.ops.object.mode_set(mode='EDIT')
+            return {'CANCELLED'}
+
+        # world-space positions
+        p1, p2 = selection
+
+        current_dist = (p1 - p2).length
+
+        target = float(self.distance)
+
+        scale_factor = target / current_dist
+
+        pivot = (p1 + p2) / 2.0
+
+        S = mathutils.Matrix.Scale(scale_factor, 4)
+
+        # Apply transform about pivot: M' = T(pivot) * S * T(-pivot) * M
+        track_root.matrix_world = mathutils.Matrix.Translation(pivot) @ S @ mathutils.Matrix.Translation(-pivot) @ active_object.matrix_world
+
+        if was_edit_mode:
+            bpy.ops.object.mode_set(mode='EDIT')
+
         return {'FINISHED'}
 
 class ColmapRefreshCacheOperator(bpy.types.Operator):
@@ -309,6 +400,8 @@ def register():
     bpy.utils.register_class(ColmapRefreshCacheOperator)
 
     bpy.utils.register_class(ColmapSetOriginOperator)
+    bpy.utils.register_class(ColmapSetFloorOperator)
+    bpy.utils.register_class(ColmapSetScaleOperator)
 
     bpy.utils.register_class(ColmapClearCacheOperator)
     bpy.utils.register_class(ColmapClearFeatureExtractionOperator)
@@ -328,6 +421,8 @@ def unregister():
     bpy.utils.unregister_class(ColmapRefreshCacheOperator)
 
     bpy.utils.unregister_class(ColmapSetOriginOperator)
+    bpy.utils.unregister_class(ColmapSetFloorOperator)
+    bpy.utils.unregister_class(ColmapSetScaleOperator)
     
     bpy.utils.unregister_class(ColmapClearCacheOperator)
     bpy.utils.unregister_class(ColmapClearFeatureExtractionOperator)

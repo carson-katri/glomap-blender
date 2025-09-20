@@ -1,5 +1,5 @@
 import bpy
-from .operators import ColmapExtractFeaturesOperator, ColmapMatchFeaturesOperator, ColmapSolveOperator, ColmapSetupTrackingSceneOperator, ColmapRefreshCacheOperator, ColmapClearCacheOperator, ColmapClearFeatureExtractionOperator, ColmapClearFeatureMatchesOperator, ColmapClearReconstructionOperator, ColmapClearImagesOperator, ColmapSetOriginOperator
+from .operators import ColmapExtractFeaturesOperator, ColmapMatchFeaturesOperator, ColmapSolveOperator, ColmapSetupTrackingSceneOperator, ColmapRefreshCacheOperator, ColmapClearCacheOperator, ColmapClearFeatureExtractionOperator, ColmapClearFeatureMatchesOperator, ColmapClearReconstructionOperator, ColmapClearImagesOperator, ColmapSetOriginOperator, ColmapSetFloorOperator, ColmapSetScaleOperator
 
 class CLIP_PT_ColmapFeatureExtractionPanel(bpy.types.Panel):
     bl_space_type = 'CLIP_EDITOR'
@@ -222,11 +222,19 @@ class CLIP_PT_ColmapSolverPanel(bpy.types.Panel):
         col = layout.column(align=True)
         col.scale_y = 2.0
         col.operator(ColmapSolveOperator.bl_idname, text="Solve Camera Motion")
-        
-        layout.operator(ColmapSetupTrackingSceneOperator.bl_idname, text="Setup Tracking Scene")
-        
+
+        layout.separator()
+
+        layout.operator(ColmapSetupTrackingSceneOperator.bl_idname)
+
         col = layout.column(align=True)
         col.operator(ColmapSetOriginOperator.bl_idname)
+        col.operator(ColmapSetFloorOperator.bl_idname)
+        
+        set_scale = layout.operator(ColmapSetScaleOperator.bl_idname)
+        layout.prop(set_scale, "distance")
+
+        layout.separator()
         
         layout.operator(ColmapClearReconstructionOperator.bl_idname, icon="TRASH")
 
