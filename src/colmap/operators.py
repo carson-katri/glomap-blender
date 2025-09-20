@@ -247,6 +247,8 @@ class ColmapSetFloorOperator(bpy.types.Operator):
 
         normal = (p2 - p1).cross(p3 - p1)
         normal.normalize()
+        if normal.z < 0:
+            normal = -normal
 
         target = mathutils.Vector((0.0, 0.0, 1.0))
 
