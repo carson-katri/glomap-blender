@@ -23,10 +23,6 @@ class CLIP_PT_GlomapSolverPanel(bpy.types.Panel):
         sc = context.space_data
         clip = sc.clip
         
-        layout.prop(clip.colmap, "use_custom_directory")
-        if clip.colmap.use_custom_directory:
-            layout.prop(clip.colmap, "directory")
-        
         layout.prop(clip.glomap, "use_gpu")
         layout.prop(clip.glomap, "ba_iteration_num")
         layout.prop(clip.glomap, "retriangulation_iteration_num")
