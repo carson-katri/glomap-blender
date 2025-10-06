@@ -87,5 +87,6 @@ paths_exclude_pattern = [
   ".python-version",
   ".gitignore",
   "requirements.txt",
-  "uv.lock"
+  "uv.lock",
+  "glomap_subprocess/fixup.cmake"
 ]
