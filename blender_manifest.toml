@@ -82,5 +82,10 @@ paths_exclude_pattern = [
   "/.venv/",
   "/.git/",
   "/*.zip",
-  "/dist/"
+  "/dist/",
+  "/.github/",
+  ".python-version",
+  ".gitignore",
+  "requirements.txt",
+  "uv.lock"
 ]

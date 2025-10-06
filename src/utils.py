@@ -204,7 +204,12 @@ class BlockingOperator(bpy.types.Operator):
         self._progress_total = 1 # get the progress bar to show right away
         self._clip = context.space_data.clip
 
-        args = self.prepare(context)
+        try:
+            args = self.prepare(context)
+        except Exception as e:
+            self.report({'ERROR'}, str(e))
+            self._running = False
+            return {'FINISHED'}
 
         def run(args):
             self.execute_async(args)

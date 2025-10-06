@@ -49,8 +49,14 @@ class ColmapMatchFeaturesOperator(BlockingOperator):
             case 'SPATIAL':
                 return ((matcher, args),)
             case 'VOCABTREE':
+                vocab_tree_path = clip.colmap.match_features.vocab_tree.vocab_tree_path
+                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://")) and not bpy.app.online_access:
+                    raise Exception(f"'Vocab Tree' matching requires online access to download '{vocab_tree_path}'")
                 return ((matcher, args),)
             case 'SEQUENTIAL':
+                vocab_tree_path = clip.colmap.match_features.sequential.vocab_tree_path
+                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://")) and not bpy.app.online_access:
+                    raise Exception(f"'Sequential' matching requires online access to download '{vocab_tree_path}'")
                 return ((matcher, args),)
 
     def execute_async(self, args):

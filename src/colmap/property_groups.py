@@ -161,7 +161,7 @@ class VocabTreeMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     num_checks: bpy.props.IntProperty(name="Checks", default=64, description='Number of nearest-neighbor checks to use in retrieval')
     num_images_after_verification: bpy.props.IntProperty(name="Images After Verification", default=0, description='How many images to return after spatial verification. Set to 0 to turn off spatial verification')
     max_num_features: bpy.props.IntProperty(name="Max Features", default=-1, description='The maximum number of features to use for indexing an image')
-    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin;vocab_tree_faiss_flickr100K_words256K.bin;96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc", description='Path to the vocabulary tree')
+    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description='Path to the vocabulary tree')
     match_list_path: bpy.props.StringProperty(name="Match List Path", default="", description='Optional path to file with specific image names to match', subtype="DIR_PATH")
 
     def build(self):
@@ -188,7 +188,7 @@ class SequentialMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     loop_detection_num_images_after_verification: bpy.props.IntProperty(name="Loop Detection Images After Verification", default=0, description="How many images to return after spatial verification. Set to 0 to turn off spatial verification")
     loop_detection_max_num_features: bpy.props.IntProperty(name="Loop Detection Max Features", default=-1, description="The maximum number of features to use for indexing an image. If an image has more features, only the largest-scale features will be indexed")
     
-    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin;vocab_tree_faiss_flickr100K_words256K.bin;96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc", description="Path to the vocabulary tree")
+    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description="Path to the vocabulary tree")
 
     def build(self):
         return pycolmap.SequentialMatchingOptions(
