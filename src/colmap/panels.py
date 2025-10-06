@@ -21,6 +21,8 @@ class CLIP_PT_ColmapFeatureExtractionPanel(bpy.types.Panel):
         sc = context.space_data
         clip = sc.clip
         
+        layout.prop(clip.colmap.extract_features, "estimate_camera")
+
         layout.prop(clip.colmap.extract_features, "camera_mode")
 
         row = layout.row(align=True)
@@ -107,8 +109,13 @@ class CLIP_PT_ColmapFeatureMatchingPanel(bpy.types.Panel):
                 layout.prop(clip.colmap.match_features.vocab_tree, "num_checks")
                 layout.prop(clip.colmap.match_features.vocab_tree, "num_images_after_verification")
                 layout.prop(clip.colmap.match_features.vocab_tree, "max_num_features")
-                layout.prop(clip.colmap.match_features.vocab_tree, "vocab_tree_path")
                 layout.prop(clip.colmap.match_features.vocab_tree, "match_list_path")
+                
+                layout.separator()
+                
+                layout.prop(clip.colmap.match_features.vocab_tree, "vocab_tree_path")
+                layout.prop(clip.colmap.match_features.vocab_tree, "vocab_tree_name")
+                layout.prop(clip.colmap.match_features.vocab_tree, "vocab_tree_hash")
             case 'SEQUENTIAL':
                 layout.prop(clip.colmap.match_features.sequential, "overlap")
                 layout.prop(clip.colmap.match_features.sequential, "quadratic_overlap")
@@ -125,6 +132,8 @@ class CLIP_PT_ColmapFeatureMatchingPanel(bpy.types.Panel):
                 col.prop(clip.colmap.match_features.sequential, "loop_detection_max_num_features")
                 
                 layout.prop(clip.colmap.match_features.sequential, "vocab_tree_path")
+                layout.prop(clip.colmap.match_features.sequential, "vocab_tree_name")
+                layout.prop(clip.colmap.match_features.sequential, "vocab_tree_hash")
 
         row = layout.row(align=True)
         row.scale_y = 2.0

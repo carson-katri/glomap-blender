@@ -23,7 +23,7 @@ class ColmapExtractFeaturesOperator(BlockingOperator):
 
         database_path, images_path, _ = prepare_database(clip)
 
-        return (clip.colmap.extract_features.build(database_path, images_path),)
+        return (clip.colmap.extract_features.build(database_path, images_path, clip),)
 
     def execute_async(self, args):
         return pycolmap.extract_features(**args)
@@ -50,13 +50,21 @@ class ColmapMatchFeaturesOperator(BlockingOperator):
                 return ((matcher, args),)
             case 'VOCABTREE':
                 vocab_tree_path = clip.colmap.match_features.vocab_tree.vocab_tree_path
-                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://")) and not bpy.app.online_access:
-                    raise Exception(f"'Vocab Tree' matching requires online access to download '{vocab_tree_path}'")
+                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://") or vocab_tree_path == "") and not bpy.app.online_access:
+                    raise Exception(
+                        f"'Vocab Tree' matching requires online access to download '{vocab_tree_path}'"
+                        if vocab_tree_path != ""
+                        else "'Vocab Tree' matching requires online access to download default bin"
+                    )
                 return ((matcher, args),)
             case 'SEQUENTIAL':
                 vocab_tree_path = clip.colmap.match_features.sequential.vocab_tree_path
-                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://")) and not bpy.app.online_access:
-                    raise Exception(f"'Sequential' matching requires online access to download '{vocab_tree_path}'")
+                if (vocab_tree_path.startswith("http://") or vocab_tree_path.startswith("https://") or vocab_tree_path == "") and not bpy.app.online_access:
+                    raise Exception(
+                        f"'Sequential' matching requires online access to download '{vocab_tree_path}'"
+                        if vocab_tree_path != ""
+                        else "'Sequential' matching requires online access to download default bin"
+                    )
                 return ((matcher, args),)
 
     def execute_async(self, args):

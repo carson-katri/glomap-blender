@@ -46,6 +46,8 @@ class SiftExtractionOptionsPropertyGroup(bpy.types.PropertyGroup):
         )
 
 class ExtractFeaturesPropertyGroup(bpy.types.PropertyGroup):
+    estimate_camera: bpy.props.BoolProperty(name="Estimate Camera", description="Allow COLMAP to estimate the camera poses", default=True)
+
     camera_mode: bpy.props.EnumProperty(
         name="Camera Mode",
         items=[
@@ -59,11 +61,31 @@ class ExtractFeaturesPropertyGroup(bpy.types.PropertyGroup):
     # SiftExtractionOptions
     sift_options: bpy.props.PointerProperty(type=SiftExtractionOptionsPropertyGroup)
 
-    def build(self, database_path, image_path):
+    def build(self, database_path, image_path, clip):
+        if not self.estimate_camera:
+            camera = clip.tracking.camera
+            pixel_width = camera.sensor_width / clip.size[0]
+            pixel_height = pixel_width * camera.pixel_aspect
+
+            # the value is always in mm, even if the UI shows it in px
+            fx = camera.focal_length / pixel_width
+            fy = camera.focal_length / pixel_height
+
+            cx = clip.size[0] / 2 + (camera.principal_point[0] * clip.size[0] / 2)
+            cy = clip.size[1] / 2 + (camera.principal_point[1] * clip.size[1] / 2)
+
+            reader_options = pycolmap.ImageReaderOptions(
+                camera_model="SIMPLE_RADIAL",
+                camera_params=f"{(fx + fy) / 2.0}, {cx}, {cy}, 0.0"
+            )
+        else:
+            reader_options = pycolmap.ImageReaderOptions()
+
         return {
             'database_path': database_path,
             'image_path': image_path,
             'camera_mode': pycolmap.CameraMode(self.camera_mode),
+            'reader_options': reader_options,
             'sift_options': self.sift_options.build()
         }
 
@@ -161,19 +183,26 @@ class VocabTreeMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     num_checks: bpy.props.IntProperty(name="Checks", default=64, description='Number of nearest-neighbor checks to use in retrieval')
     num_images_after_verification: bpy.props.IntProperty(name="Images After Verification", default=0, description='How many images to return after spatial verification. Set to 0 to turn off spatial verification')
     max_num_features: bpy.props.IntProperty(name="Max Features", default=-1, description='The maximum number of features to use for indexing an image')
-    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description='Path to the vocabulary tree')
     match_list_path: bpy.props.StringProperty(name="Match List Path", default="", description='Optional path to file with specific image names to match', subtype="DIR_PATH")
+    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description='Path to the vocabulary tree')
+    vocab_tree_name: bpy.props.StringProperty(name="Vocab Tree Name", default="vocab_tree_faiss_flickr100K_words256K.bin", description='Name of the vocabulary tree, only required if Vocab Tree Path is a URL')
+    vocab_tree_hash: bpy.props.StringProperty(name="Vocab Tree Hash", default="96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc", description='SHA256 hash of the vocabulary tree, only required if Vocab Tree Path is a URL')
 
     def build(self):
-        return pycolmap.VocabTreeMatchingOptions(
-            num_images=self.num_images,
-            num_nearest_neighbors=self.num_nearest_neighbors,
-            num_checks=self.num_checks,
-            num_images_after_verification=self.num_images_after_verification,
-            max_num_features=self.max_num_features,
-            vocab_tree_path=self.vocab_tree_path,
-            match_list_path=self.match_list_path
-        )
+        kwargs = {
+            'num_images': self.num_images,
+            'num_nearest_neighbors': self.num_nearest_neighbors,
+            'num_checks': self.num_checks,
+            'num_images_after_verification': self.num_images_after_verification,
+            'max_num_features': self.max_num_features,
+            'match_list_path': self.match_list_path
+        }
+        if self.vocab_tree_path.strip() != "":
+            if self.vocab_tree_path.startswith("http://") or self.vocab_tree_path.startswith("https://"):
+                kwargs['vocab_tree_path'] = f"{self.vocab_tree_path};{self.vocab_tree_name};{self.vocab_tree_hash}"
+            else:
+                kwargs['vocab_tree_path'] = self.vocab_tree_path
+        return pycolmap.VocabTreeMatchingOptions(**kwargs)
 
 class SequentialMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     overlap: bpy.props.IntProperty(name="Overlap", default=10, description="Number of overlapping image pairs")
@@ -188,22 +217,29 @@ class SequentialMatchingOptionsPropertyGroup(bpy.types.PropertyGroup):
     loop_detection_num_images_after_verification: bpy.props.IntProperty(name="Loop Detection Images After Verification", default=0, description="How many images to return after spatial verification. Set to 0 to turn off spatial verification")
     loop_detection_max_num_features: bpy.props.IntProperty(name="Loop Detection Max Features", default=-1, description="The maximum number of features to use for indexing an image. If an image has more features, only the largest-scale features will be indexed")
     
-    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description="Path to the vocabulary tree")
+    vocab_tree_path: bpy.props.StringProperty(name="Vocab Tree Path", default="https://github.com/colmap/colmap/releases/download/3.11.1/vocab_tree_faiss_flickr100K_words256K.bin", description='Path to the vocabulary tree')
+    vocab_tree_name: bpy.props.StringProperty(name="Vocab Tree Name", default="vocab_tree_faiss_flickr100K_words256K.bin", description='Name of the vocabulary tree')
+    vocab_tree_hash: bpy.props.StringProperty(name="Vocab Tree Hash", default="96ca8ec8ea60b1f73465aaf2c401fd3b3ca75cdba2d3c50d6a2f6f760f275ddc", description='SHA256 hash of the vocabulary tree')
 
     def build(self):
-        return pycolmap.SequentialMatchingOptions(
-            overlap=self.overlap,
-            quadratic_overlap=self.quadratic_overlap,
-            expand_rig_images=self.expand_rig_images,
-            loop_detection=self.loop_detection,
-            loop_detection_period=self.loop_detection_period,
-            loop_detection_num_images=self.loop_detection_num_images,
-            loop_detection_num_nearest_neighbors=self.loop_detection_num_nearest_neighbors,
-            loop_detection_num_checks=self.loop_detection_num_checks,
-            loop_detection_num_images_after_verification=self.loop_detection_num_images_after_verification,
-            loop_detection_max_num_features=self.loop_detection_max_num_features,
-            vocab_tree_path=self.vocab_tree_path
-        )
+        kwargs = {
+            'overlap': self.overlap,
+            'quadratic_overlap': self.quadratic_overlap,
+            'expand_rig_images': self.expand_rig_images,
+            'loop_detection': self.loop_detection,
+            'loop_detection_period': self.loop_detection_period,
+            'loop_detection_num_images': self.loop_detection_num_images,
+            'loop_detection_num_nearest_neighbors': self.loop_detection_num_nearest_neighbors,
+            'loop_detection_num_checks': self.loop_detection_num_checks,
+            'loop_detection_num_images_after_verification': self.loop_detection_num_images_after_verification,
+            'loop_detection_max_num_features': self.loop_detection_max_num_features
+        }
+        if self.vocab_tree_path.strip() != "":
+            if self.vocab_tree_path.startswith("http://") or self.vocab_tree_path.startswith("https://"):
+                kwargs['vocab_tree_path'] = f"{self.vocab_tree_path};{self.vocab_tree_name};{self.vocab_tree_hash}"
+            else:
+                kwargs['vocab_tree_path'] = self.vocab_tree_path
+        return pycolmap.SequentialMatchingOptions(**kwargs)
 
 class MatchFeaturesPropertyGroup(bpy.types.PropertyGroup):
     matcher: bpy.props.EnumProperty(
